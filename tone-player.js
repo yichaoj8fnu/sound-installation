@@ -3,70 +3,82 @@ import * as Tone from "https://esm.sh/tone";
 Tone.Transport.bpm.value = 88;
 Tone.Transport.loop = true;
 Tone.Transport.loopEnd = "8m";
-// 总音轨数从 18 减少到 16
-const TOTAL_TRACKS = 16; 
 
-// ========== 鼓组全分轨 ==========
+// 经过合并优化，总音轨减少至 11 条，单轨更具音乐性
+const TOTAL_TRACKS = 11;
+
+// ========== 1. 完整底鼓 (Kick) ==========
 const kick = new Tone.MembraneSynth().toDestination();
-const kickParts = [
-  new Tone.Part(t => kick.triggerAttackRelease("C1", "8n", t), [["0:0:0"],["1:0:0"],["2:0:0"],["3:0:0"]]),
-  new Tone.Part(t => kick.triggerAttackRelease("C1", "8n", t), [["0:1:0"],["1:1:0"],["2:1:0"],["3:1:0"]]),
-  new Tone.Part(t => kick.triggerAttackRelease("C1", "8n", t), [["0:2:0"],["1:2:0"],["2:2:0"],["3:2:0"]]),
-  new Tone.Part(t => kick.triggerAttackRelease("C1", "8n", t), [["0:3:0"],["1:3:0"],["2:3:0"],["3:3:0"]]),
-];
-kickParts.forEach(p => { p.loop = true; p.start(0); p.probability = 0; });
+// 合并了原先的 4 条，现在一条音轨打满 4 拍
+const kickPart = new Tone.Part(t => kick.triggerAttackRelease("C1", "8n", t), [
+  ["0:0:0"], ["0:1:0"], ["0:2:0"], ["0:3:0"],
+  ["1:0:0"], ["1:1:0"], ["1:2:0"], ["1:3:0"],
+  ["2:0:0"], ["2:1:0"], ["2:2:0"], ["2:3:0"],
+  ["3:0:0"], ["3:1:0"], ["3:2:0"], ["3:3:0"]
+]);
+kickPart.loop = true; kickPart.start(0); kickPart.probability = 0;
 
+// ========== 2. 完整军鼓 (Snare) ==========
 const snare = new Tone.NoiseSynth({ envelope: { attack: 0.001, decay: 0.2, sustain: 0 } }).toDestination();
-const snareParts = [
-  new Tone.Part(t => snare.triggerAttackRelease("8n", t), [["0:1:0"],["1:1:0"],["2:1:0"],["3:1:0"]]),
-  new Tone.Part(t => snare.triggerAttackRelease("8n", t), [["0:3:0"],["1:3:0"],["2:3:0"],["3:3:0"]]),
-];
-snareParts.forEach(p => { p.loop = true; p.start(0); p.probability = 0; });
+// 合并了原先的 2 条，负责 2、4 拍
+const snarePart = new Tone.Part(t => snare.triggerAttackRelease("8n", t), [
+  ["0:1:0"], ["0:3:0"], ["1:1:0"], ["1:3:0"],
+  ["2:1:0"], ["2:3:0"], ["3:1:0"], ["3:3:0"]
+]);
+snarePart.loop = true; snarePart.start(0); snarePart.probability = 0;
 
+// ========== 3. 完整踩镲 (Hihat) ==========
 const hihat = new Tone.MetalSynth({ frequency: 250, envelope: { attack: 0.001, decay: 0.05, release: 0.01 }, harmonicity: 5.1, modulationIndex: 32, resonance: 4000, octaves: 1.5 }).toDestination();
-const hihatParts = [
-  new Tone.Part(t => hihat.triggerAttackRelease("8n", t), [["0:0:2"],["1:0:2"],["2:0:2"],["3:0:2"]]),
-  new Tone.Part(t => hihat.triggerAttackRelease("8n", t), [["0:2:2"],["1:2:2"],["2:2:2"],["3:2:2"]]),
-];
-hihatParts.forEach(p => { p.loop = true; p.start(0); p.probability = 0; });
+const hihatPart = new Tone.Part(t => hihat.triggerAttackRelease("8n", t), [
+  ["0:0:2"], ["0:2:2"], ["1:0:2"], ["1:2:2"],
+  ["2:0:2"], ["2:2:2"], ["3:0:2"], ["3:2:2"]
+]);
+hihatPart.loop = true; hihatPart.start(0); hihatPart.probability = 0;
 
+// ========== 4. 边击 (Rim) ==========
 const rim = new Tone.MetalSynth({ frequency: 200, envelope: { attack: 0.001, decay: 0.05, release: 0.01 }, harmonicity: 2, modulationIndex: 20, resonance: 800, octaves: 1 }).toDestination();
 const rimPart = new Tone.Part(t => rim.triggerAttackRelease("16n", t), [["0:1:2"],["1:2:2"],["2:3:0"],["3:2:3"],["0:3:2"],["2:2:3"]]);
 rimPart.loop = true; rimPart.start(0); rimPart.probability = 0;
 
+// ========== 5. 嗵鼓 (Tom) ==========
 const tom = new Tone.MembraneSynth({ pitchDecay: 0.1, octaves: 1.5, oscillator: { type: "sine" }, envelope: { attack: 0.005, decay: 0.3, sustain: 0, release: 0.5 } }).toDestination();
 const tomPart = new Tone.Part(t => tom.triggerAttackRelease("A1", "8n", t), [["2:0:0"],["3:2:0"],["0:2:2"],["1:1:2"]]);
 tomPart.loop = true; tomPart.start(0); tomPart.probability = 0;
 
+// ========== 6. 节拍器效果 (Click) ==========
 const clickOsc = new Tone.Oscillator("C6", "square").toDestination();
 const clickPart = new Tone.Part(t => clickOsc.start(t).stop(t + 0.05), [["0:0:3"], ["1:2:2"], ["2:1:3"], ["3:3:1"], ["2:2:1"]]);
 clickPart.loop = true; clickPart.start(0); clickPart.probability = 0;
 
-// ========== 其它乐器分轨 ==========
+// ========== 7. 和弦 (Rhodes) ==========
 const reverb = new Tone.Reverb({ decay: 3, wet: 0.4 }).toDestination();
 const rhodes = new Tone.PolySynth(Tone.FMSynth, { harmonicity: 3, modulationIndex: 6, oscillator: { type: "sine" }, envelope: { attack: 0.5, decay: 0.2, sustain: 0.3, release: 2 }, modulation: { type: "sine" }, modulationEnvelope: { attack: 0.3, decay: 0.1, sustain: 0.2, release: 0.8 } }).connect(reverb);
 const rhodesPart = new Tone.Part((time, chord) => rhodes.triggerAttackRelease(chord, "1n", time), [["0:0:0", ["D3", "F3", "C4"]], ["1:0:0", ["G3", "B3", "F4"]], ["2:0:0", ["C3", "E3", "B3", "G4"]], ["3:0:0", ["A3", "C4", "G4"]], ["4:0:0", ["D3", "F3", "A3"]], ["5:0:0", ["G3", "F4", "B4"]], ["6:0:0", ["C4", "E4", "B4", "G4"]], ["7:0:0", ["C4", "E4", "G4"]]]);
 rhodesPart.loop = true; rhodesPart.loopEnd = "8m"; rhodesPart.start(0); rhodesPart.probability = 0;
 
+// ========== 8. 贝斯 (Bass) ==========
 const bassFilter = new Tone.Filter(100, "lowpass").toDestination();
 const jazzBass = new Tone.MonoSynth({ oscillator: { type: "sawtooth" }, envelope: { attack: 0.03, decay: 0.2, sustain: 0.3, release: 1.5 }, filterEnvelope: { attack: 0.01, decay: 0.1, sustain: 0.2, release: 0.8, baseFrequency: 200, octaves: 1.5 } }).connect(bassFilter);
 jazzBass.set({ glide: 0.08 });
 const bassPart = new Tone.Part((t, n) => jazzBass.triggerAttackRelease(n, "8n", t), [["0:1:3", "C2"], ["1:0:1", "E2"], ["2:1:0", "A1"], ["3:2:2", "D2"]]);
 bassPart.loop = true; bassPart.start(0); bassPart.probability = 0;
 
-const cityNoise = new Tone.Noise("brown"); const cityGain = new Tone.Gain(0).toDestination(); cityNoise.connect(cityGain);
-const radioNoise = new Tone.Noise("brown"); const radioGain = new Tone.Gain(0).toDestination(); radioNoise.connect(radioGain);
-
+// ========== 9. 游戏合成音 (Game Synth) ==========
 const gameSynth = new Tone.FMSynth({ modulationIndex: 18, envelope: { attack: 0.01, decay: 0.1, sustain: 0.1, release: 0.5 } }).toDestination();
 const gamePart = new Tone.Part((t, n) => gameSynth.triggerAttackRelease(n, "16n", t), [["0:0:2", "G4"], ["1:1:3", "B4"], ["2:2:1", "E5"], ["3:0:2", "D5"]]);
 gamePart.loop = true; gamePart.start(0); gamePart.probability = 0;
 
-// ========== 轨道分配 ==========
+// ========== 10 & 11. 环境音 (City & Radio) ==========
+const cityNoise = new Tone.Noise("brown"); const cityGain = new Tone.Gain(0).toDestination(); cityNoise.connect(cityGain);
+const radioNoise = new Tone.Noise("brown"); const radioGain = new Tone.Gain(0).toDestination(); radioNoise.connect(radioGain);
+
+
+// ========== 轨道分配引擎 ==========
 function setOnlyActiveTrack(idx) {
-  // 分配前全员静音
-  kickParts.forEach(p => p.probability = 0);
-  snareParts.forEach(p => p.probability = 0);
-  hihatParts.forEach(p => p.probability = 0);
+  // 1. 全员静音复位
+  kickPart.probability = 0;
+  snarePart.probability = 0;
+  hihatPart.probability = 0;
   rimPart.probability = 0;
   tomPart.probability = 0;
   clickPart.probability = 0;
@@ -79,37 +91,46 @@ function setOnlyActiveTrack(idx) {
   if (radioNoise.state === "started") radioNoise.stop();
   if (cityNoise.state === "started") cityNoise.stop();
 
-  // 重新分配这 16 条音轨
-  if (idx < 4) kickParts[idx].probability = 1; // 0, 1, 2, 3
-  else if (idx < 6) snareParts[idx - 4].probability = 1; // 4, 5
-  else if (idx < 8) hihatParts[idx - 6].probability = 1; // 6, 7
-  else if (idx === 8) rimPart.probability = 1;
-  else if (idx === 9) tomPart.probability = 1;
-  else if (idx === 10) clickPart.probability = 1;
-  else if (idx === 11) rhodesPart.probability = 1;
-  else if (idx === 12) bassPart.probability = 1;
-  else if (idx === 13) gamePart.probability = 1;
-  else if (idx === 14) { cityGain.gain.value = 0.1; if (cityNoise.state !== "started") cityNoise.start(); }
-  else if (idx === 15) { radioGain.gain.value = 0.15; if (radioNoise.state !== "started") radioNoise.start(); }
+  // 2. 激活唯一指定轨道 (0-10)
+  switch(idx) {
+    case 0: kickPart.probability = 1; break;
+    case 1: snarePart.probability = 1; break;
+    case 2: hihatPart.probability = 1; break;
+    case 3: rimPart.probability = 1; break;
+    case 4: tomPart.probability = 1; break;
+    case 5: clickPart.probability = 1; break;
+    case 6: rhodesPart.probability = 1; break;
+    case 7: bassPart.probability = 1; break;
+    case 8: gamePart.probability = 1; break;
+    case 9: cityGain.gain.value = 0.1; if (cityNoise.state !== "started") cityNoise.start(); break;
+    case 10: radioGain.gain.value = 0.15; if (radioNoise.state !== "started") radioNoise.start(); break;
+  }
 }
 
-// ========== 智能加权分配算法 (面试官适配模式) ==========
+// ========== 启动与分配逻辑 (支持 URL 定向) ==========
 export async function startPlayback() {
   await Tone.start();
   
-  // 核心乐器：任意 Kick(0-3), Rhodes和弦(11), Bass(12)
-  const coreTracks = [0, 1, 2, 3, 11, 12];
-  // 装饰乐器：其余所有 (去掉了之前的采样音轨)
-  const decorTracks = [4, 5, 6, 7, 8, 9, 10, 13, 14, 15];
+  const urlParams = new URLSearchParams(window.location.search);
+  const trackParam = urlParams.get('track');
   
   let trackToPlay;
-  const randomValue = Math.random();
-  
-  // 60% 概率分配核心骨架音（保证人少时也好听），40% 分配装饰音
-  if (randomValue < 0.6) {
-      trackToPlay = coreTracks[Math.floor(Math.random() * coreTracks.length)];
+
+  if (trackParam !== null && !isNaN(trackParam)) {
+      // 如果扫了指定二维码，精确分配（取余确保不超出 11）
+      trackToPlay = parseInt(trackParam) % TOTAL_TRACKS;
   } else {
-      trackToPlay = decorTracks[Math.floor(Math.random() * decorTracks.length)];
+      // 如果扫了通用二维码，启用智能加权随机
+      // 核心骨架音：0(底鼓), 6(和弦), 7(贝斯)
+      const coreTracks = [0, 6, 7];
+      // 其他装饰/律动音：其余所有
+      const decorTracks = [1, 2, 3, 4, 5, 8, 9, 10];
+      
+      if (Math.random() < 0.6) { // 60% 概率抽中三大核心
+          trackToPlay = coreTracks[Math.floor(Math.random() * coreTracks.length)];
+      } else { // 40% 概率抽中其他
+          trackToPlay = decorTracks[Math.floor(Math.random() * decorTracks.length)];
+      }
   }
 
   setOnlyActiveTrack(trackToPlay);
@@ -118,7 +139,7 @@ export async function startPlayback() {
   Tone.Transport.start("+0.1");
 }
 
-// ========== 视觉闪烁 ==========
+// ========== 视觉节奏闪烁 ==========
 const flashColors = ["#FF007F", "#00FFFF", "#FFA500", "#00FF66"];
 let flashIndex = 0;
 export function setupBackgroundFlash() {
