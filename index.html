@@ -13,27 +13,26 @@
       justify-content: center; align-items: center; text-align: center;
       transition: background-color 0.3s ease;
     }
-    /* 初始状态背景色 */
+    
+    /* 初始蓝底状态 */
     body.step-join { background-color: #474AFF; color: #FFFFFF; }
-    /* 播放状态背景色 (初始为粉色，后由JS控制闪烁) */
+    /* 播放时的初始粉底（随后由JS接管闪烁） */
     body.step-play { background-color: #FF007F; }
 
-    /* 通用按钮样式 */
     button {
       border: none; border-radius: 0; cursor: pointer;
       font-weight: bold; transition: background-color 0.2s ease;
     }
     button:active { background-color: black !important; color: white !important; }
 
-    /* 页面 1 样式 */
+    /* JOIN 界面元素 */
     #page-join { display: flex; flex-direction: column; align-items: center; }
     .notice { font-size: 1rem; letter-spacing: 0.03em; line-height: 1.6; margin-bottom: 2rem; padding: 0 2rem; }
     #join-btn { background-color: #00FFFF; padding: 1rem 2.5rem; font-size: 1.2rem; color: black; }
 
-    /* 页面 2 样式 */
+    /* 共演中 界面元素 */
     #page-play { display: none; flex-direction: column; align-items: center; }
-    #start-btn { background-color: #00FFFF; padding: 1rem 2.5rem; font-size: 1.2rem; color: black; }
-    #playing-text { display: none; color: white; font-size: 1.2rem; opacity: 0.8; }
+    #playing-text { color: white; font-size: 1.5rem; font-weight: bold; letter-spacing: 0.2em; }
   </style>
 </head>
 <body class="step-join">
@@ -48,7 +47,6 @@
   </div>
 
   <div id="page-play">
-    <button id="start-btn">演奏開始</button>
     <div id="playing-text">共演中…</div>
   </div>
 
@@ -59,21 +57,16 @@
     const pageJoin = document.getElementById('page-join');
     const pagePlay = document.getElementById('page-play');
     const joinBtn = document.getElementById('join-btn');
-    const startBtn = document.getElementById('start-btn');
-    const playingText = document.getElementById('playing-text');
 
-    // 点击 JOIN：仅切换UI，不触发音频（避免权限报错）
-    joinBtn.onclick = () => {
+    // 核心优化：将 UI 切换与音频唤醒绑定在同一次点击中
+    joinBtn.onclick = async () => {
+      // 1. 瞬间切换 UI 视觉状态
       pageJoin.style.display = "none";
       pagePlay.style.display = "flex";
       body.classList.remove("step-join");
       body.classList.add("step-play");
-    };
 
-    // 点击 演奏開始：真正请求音频权限并播放
-    startBtn.onclick = async () => {
-      startBtn.style.display = "none";
-      playingText.style.display = "block";
+      // 2. 利用这次极其宝贵的“点击权限”，直接启动声音装置
       await startPlayback();
       setupBackgroundFlash();
     };
